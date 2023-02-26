@@ -1,5 +1,6 @@
 import logging
 
+from telethon.tl.custom import InlineResult
 from telethon.tl.types import Message, BotInlineMessageText
 from telethon.tl.custom.inlineresults import InlineResults
 
@@ -14,6 +15,10 @@ cheques = []
 
 rocket_valid: list = [
     "mc", "mci", "t"
+]
+
+valid_bots = [
+    "tonrocketbot", "cryptobot", "xjetswapbot", "wallet"
 ]
 
 bots: dict = {
@@ -80,6 +85,8 @@ def filter_cheques(bot: str, cheque: str) -> bool:
 class ChequesModule(loader.Module):
     """Just for testing purposes"""
 
+    url_regex = r"([https?:\/\/]?(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,})"
+
     strings = {
         "name": "ChequesMod",
         "transfer_found": "transfer found",
@@ -97,8 +104,6 @@ class ChequesModule(loader.Module):
 
     @loader.tag("only_messages", "in")
     async def watcher(self, message: Message):
-        raw_message = message.message
-
         bot_id = message.via_bot_id
 
         group_id = list(message.peer_id.to_dict().values())[1]
@@ -128,11 +133,14 @@ class ChequesModule(loader.Module):
                     results: InlineResults = await self.client.inline_query(bot_username, cheque)
 
                     if len(results) == 1:
-                        result: BotInlineMessageText = results[0].message
+                        inline: InlineResult = results[0]
 
-                        button = result.reply_markup.rows[0].buttons[0]
+                        from_inline_message: BotInlineMessageText = inline.message
 
-                        message = result.message
+                        button = from_inline_message.reply_markup.rows[0].buttons[0]
+
+                        in_inline_title = inline.title
+                        in_inline_description = inline.description
 
                         url = parse_url(button.url)
                         query = dict(parse_qsl(url.query))
@@ -148,7 +156,7 @@ class ChequesModule(loader.Module):
                                 source = self.strings["source"]
 
                                 await self.inline.form(
-                                    text=f"<b>{bot_name}</b> {transfer_found}\n\n{message}",
+                                    text=f"<b>{bot_name}</b> {transfer_found}\n{in_inline_title}\n{in_inline_description}\n\n{from_inline_message.message}",
                                     message=1744074313,
                                     reply_markup=[
                                         [
@@ -163,3 +171,70 @@ class ChequesModule(loader.Module):
                                         ]
                                     ]
                                 )
+        else:
+            raw_message = message.message
+            urls = re.findall(self.url_regex, raw_message)
+            for i in message.entities:
+                _url = i.url
+                if _url is not None:
+                    urls.append(_url)
+
+            logger.info(urls)
+
+            gen = (parse_url(url) for url in urls)
+            for url in gen:
+                address = url.netloc.lower()
+
+                if address == "t.me":
+                    logger.info("address valid")
+                    bot_url = url.path.removeprefix("/")
+                    query = dict(parse_qsl(url.query))
+
+                    if bot_url.lower() in valid_bots:
+                        if "start" in query:
+                            logger.info("first start is valid")
+                            cheque: str = query["start"]
+
+                            results: InlineResults = await self.client.inline_query(bot_url, cheque)
+
+                            if len(results) == 1:
+                                inline: InlineResult = results[0]
+
+                                from_inline_message: BotInlineMessageText = inline.message
+
+                                button = from_inline_message.reply_markup.rows[0].buttons[0]
+
+                                in_inline_title = inline.title
+                                in_inline_description = inline.description
+
+                                url = parse_url(button.url)
+                                query = dict(parse_qsl(url.query))
+
+                                if "start" in query:
+                                    logger.info("second start is valid")
+                                    cheque: str = query["start"]
+
+                                    if filter_cheques(bot_url.lower(), cheque):
+                                        logger.info("verified")
+
+                                        transfer_found = self.strings["transfer_found"]
+                                        source = self.strings["source"]
+
+                                        await self.inline.form(
+                                            text=f"<b>{bot_url}</b> {transfer_found}\n{in_inline_title}\n{in_inline_description}\n\n{from_inline_message.message}",
+                                            message=1744074313,
+                                            reply_markup=[
+                                                [
+                                                    {
+                                                        "text": button.text,
+                                                        "url": button.url
+                                                    },
+                                                    {
+                                                        "text": source,
+                                                        "url": f"https://t.me/c/{group_id}/{message_id}"
+                                                    }
+                                                ]
+                                            ]
+                                        )
+
+
