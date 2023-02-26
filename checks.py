@@ -174,10 +174,12 @@ class ChequesModule(loader.Module):
         else:
             raw_message = message.message
             urls = re.findall(self.url_regex, raw_message)
-            for i in message.entities:
-                _url = i.url
-                if _url is not None:
-                    urls.append(_url)
+            entities = message.entities
+            if entities is not None:
+                for i in message.entities:
+                    _url = i.url
+                    if _url is not None:
+                        urls.append(_url)
 
             logger.info(urls)
 
