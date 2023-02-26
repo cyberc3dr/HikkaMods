@@ -238,5 +238,4 @@ class ChequesModule(loader.Module):
                                                 ]
                                             ]
                                         )
-
-
+                                        
