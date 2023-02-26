@@ -10,7 +10,7 @@ import re
 
 logger = logging.getLogger(__name__)
 
-messages = []
+cheques = []
 
 rocket_valid: list = [
     "mc", "mci", "t"
@@ -45,32 +45,32 @@ def parse_url(s: str):
     return urlparse(s)
 
 
-def filter_cheques(bot: str, cheque: str, raw_message: str) -> bool:
+def filter_cheques(bot: str, cheque: str) -> bool:
     if bot == "tonrocketbot" and "_" in cheque:
         logger.info("TonRocket")
         split = cheque.split("_")
         cheque_type = split[0].lower()
         cheque_hash = split[1]
-        if len(cheque_hash) == 15 and cheque_type in rocket_valid and raw_message not in messages:
+        if len(cheque_hash) == 15 and cheque_type in rocket_valid and cheque not in cheques:
             logger.info("rocket cheque is valid")
-            messages.append(raw_message)
+            cheques.append(cheque)
             return True
     elif bot == "cryptobot":
         logger.info("CryptoBot")
-        if cheque.startswith("CQ") and len(cheque) == 12 and raw_message not in messages:
+        if cheque.startswith("CQ") and len(cheque) == 12 and cheque not in cheques:
             logger.info("cryptobot cheque is valid")
-            messages.append(raw_message)
+            cheques.append(cheque)
             return True
     elif bot == "xjetswapbot":
         logger.info("xJetSwap")
-        if cheque.startswith("c_") and len(cheque) == 26 and raw_message not in messages:
+        if cheque.startswith("c_") and len(cheque) == 26 and cheque not in cheques:
             logger.info("xjetswap cheque is valid")
-            messages.append(raw_message)
+            cheques.append(cheque)
             return True
     elif bot == "wallet":
-        if cheque.startswith("C-") and len(cheque) == 12 and raw_message not in messages:
+        if cheque.startswith("C-") and len(cheque) == 12 and cheque not in cheques:
             logger.info("wallet cheque is valid")
-            messages.append(raw_message)
+            cheques.append(cheque)
             return True
 
     return False
@@ -141,14 +141,14 @@ class ChequesModule(loader.Module):
                             logger.info("second start is valid")
                             cheque: str = query["start"]
 
-                            if filter_cheques(bot_url, cheque, message):
+                            if filter_cheques(bot_url, cheque):
                                 logger.info("verified")
 
                                 transfer_found = self.strings["transfer_found"]
                                 source = self.strings["source"]
 
                                 await self.inline.form(
-                                    text=f"<b>{bot_name}</b> {transfer_found}\n\n{result.message}",
+                                    text=f"<b>{bot_name}</b> {transfer_found}\n\n{message}",
                                     message=1744074313,
                                     reply_markup=[
                                         [
