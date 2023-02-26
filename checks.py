@@ -1,7 +1,7 @@
 import logging
 
 from telethon.tl.custom import InlineResult
-from telethon.tl.types import Message, BotInlineMessageText
+from telethon.tl.types import Message, BotInlineMessageText, MessageEntityTextUrl
 from telethon.tl.custom.inlineresults import InlineResults
 
 from .. import loader
@@ -176,12 +176,11 @@ class ChequesModule(loader.Module):
             urls = re.findall(self.url_regex, raw_message)
             entities = message.entities
             if entities is not None:
-                for i in message.entities:
-                    _url = i.url
-                    if _url is not None:
-                        urls.append(_url)
-
-            logger.info(urls)
+                for i in entities:
+                    if isinstance(i, MessageEntityTextUrl):
+                        _url = i.url
+                        if re.match(self.url_regex, _url) is not None:
+                            urls.append(_url)
 
             gen = (parse_url(url) for url in urls)
             for url in gen:
@@ -238,4 +237,5 @@ class ChequesModule(loader.Module):
                                                 ]
                                             ]
                                         )
-                                        
+
+
