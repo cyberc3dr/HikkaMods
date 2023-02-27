@@ -229,6 +229,8 @@ class ChequesModule(loader.Module):
                                 in_inline_title = ""
                                 in_inline_description = ""
 
+                                logger.info(bot_url, cheque)
+
                                 if bot_url.lower() in require_inline:
                                     _results: InlineResults = await self.client.inline_query(bot_url, cheque)
 
@@ -249,6 +251,8 @@ class ChequesModule(loader.Module):
                                         if "start" in query:
                                             logger.info("second start is valid")
                                             cheque: str = query["start"]
+
+                                logger.info(bot_url, cheque)
 
                                 if filter_cheques(bot_url.lower(), cheque):
                                     logger.info("verified")
