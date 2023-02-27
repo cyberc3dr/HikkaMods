@@ -94,13 +94,15 @@ class ChequesModule(loader.Module):
     strings = {
         "name": "ChequesMod",
         "transfer_found": "transfer found",
-        "source": "Source"
+        "source": "Source",
+        "activate": "Activate"
     }
 
     strings_ru = {
         "name": "ChequesMod",
         "transfer_found": "перевод был найден",
-        "source": "Источник"
+        "source": "Источник",
+        "activate": "Активировать"
     }
 
     def __init__(self):
@@ -141,6 +143,7 @@ class ChequesModule(loader.Module):
                     in_inline_description = ""
 
                     if bot_url in require_inline:
+                        logger.info("inline")
                         results: InlineResults = await self.client.inline_query(bot_username, cheque)
 
                         if len(results) == 1:
@@ -185,31 +188,28 @@ class ChequesModule(loader.Module):
                         )
         else:
             raw_message = message.message
-            urls = [parse_url(url) for url in re.findall(self.url_regex, raw_message)]
-            _entities = message.entities
-            if _entities is not None:
-                for i in _entities:
+            urls = re.findall(self.url_regex, raw_message)
+            entities = message.entities
+            if entities is not None:
+                for i in entities:
                     if isinstance(i, MessageEntityTextUrl):
                         _url = i.url
                         if re.match(self.url_regex, _url) is not None:
-                            try:
-                                urls.append(parse_url(_url))
-                            except:
-                                continue
+                            urls.append(_url)
 
-            _reply_markup = message.reply_markup
-            if _reply_markup is not None:
-                for _row in _reply_markup.rows:
-                    for _button in _row.buttons:
-                        if isinstance(_button, KeyboardButtonUrl):
-                            try:
-                                urls.append(parse_url(_button.url))
-                            except:
-                                continue
+            reply_markup = message.reply_markup
+            if reply_markup is not None:
+                for row in reply_markup.rows:
+                    for button in row.buttons:
+                        if isinstance(button, KeyboardButtonUrl):
+                            _url = button.url
+                            if re.match(self.url_regex, _url) is not None:
+                                urls.append(_url)
 
             urls = [*set(urls)]
 
-            for url in urls:
+            for raw_url in urls:
+                url = parse_url(raw_url)
                 try:
                     address = url.netloc.lower()
 
@@ -223,27 +223,34 @@ class ChequesModule(loader.Module):
                                 logger.info("first start is valid")
                                 cheque: str = query["start"]
 
-                                original_message = message.message
-                                button = message.reply_markup.rows[0].buttons[0]
+                                button_text = self.strings["activate"]
+                                button_url = raw_url
 
-                                in_inline_title = ""
-                                in_inline_description = ""
+                                original_message = ""
+                                title = ""
+                                description = ""
 
-                                logger.info(bot_url, cheque)
+                                logger.info(url.query)
+                                logger.info(cheque)
+                                logger.info(bot_url)
 
                                 if bot_url.lower() in require_inline:
-                                    _results: InlineResults = await self.client.inline_query(bot_url, cheque)
+                                    logger.info("inline")
+                                    results: InlineResults = await self.client.inline_query(bot_url, cheque)
 
-                                    if len(_results) == 1:
-                                        inline: InlineResult = _results[0]
+                                    if len(results) == 1:
+                                        inline: InlineResult = results[0]
 
-                                        _message: BotInlineMessageText = inline.message
-                                        original_message = _message.message
+                                        from_inline_message: BotInlineMessageText = inline.message
+                                        original_message = f"\n\n{from_inline_message.message}"
 
-                                        button = _message.reply_markup.rows[0].buttons[0]
+                                        button = from_inline_message.reply_markup.rows[0].buttons[0]
 
-                                        in_inline_title = "\n" + inline.title
-                                        in_inline_description = "\n" + inline.description
+                                        button_text = button.text
+                                        button_url = button.url
+
+                                        title = f"\n{inline.title}"
+                                        description = f"\n{inline.description}"
 
                                         url = parse_url(button.url)
                                         query = dict(parse_qsl(url.query))
@@ -252,7 +259,9 @@ class ChequesModule(loader.Module):
                                             logger.info("second start is valid")
                                             cheque: str = query["start"]
 
-                                logger.info(bot_url, cheque)
+                                logger.info(url.query)
+                                logger.info(cheque)
+                                logger.info(bot_url)
 
                                 if filter_cheques(bot_url.lower(), cheque):
                                     logger.info("verified")
@@ -261,13 +270,13 @@ class ChequesModule(loader.Module):
                                     source = self.strings["source"]
 
                                     await self.inline.form(
-                                        text=f"<b>{bot_url}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
+                                        text=f"<b>{bot_url}</b> {transfer_found}{title}{description}{original_message}",
                                         message=1744074313,
                                         reply_markup=[
                                             [
                                                 {
-                                                    "text": button.text,
-                                                    "url": button.url
+                                                    "text": button_text,
+                                                    "url": button_url
                                                 },
                                                 {
                                                     "text": source,
