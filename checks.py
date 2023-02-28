@@ -1,4 +1,6 @@
 import logging
+from abc import ABC, abstractmethod
+from numbers import Number
 
 from telethon.tl.custom import InlineResult
 from telethon.tl.types import Message, BotInlineMessageText, MessageEntityTextUrl, KeyboardButtonUrl
@@ -11,38 +13,113 @@ import re
 
 logger = logging.getLogger(__name__)
 
-cheques = []
+container_id = 1744074313
 
-rocket_valid: list = [
-    "mc", "mci", "t"
-]
 
-require_inline = [
-    "tonrocketbot", "xjetswapbot", "wallet"
-]
+class Bot(ABC):
+    _cheques = []
 
-valid_bots = [
-    "tonrocketbot", "cryptobot", "xjetswapbot", "wallet"
-]
+    def __init__(self, id: Number, username: str, display_name: str):
+        self.id = id
+        self.username = username
+        self.display_name = display_name
 
-bots: dict = {
-    5014831088: {
-        "name": "TonRocket",
-        "username": "tonRocketBot"
-    },
-    1559501630: {
-        "name": "CryptoBot",
-        "username": "CryptoBot"
-    },
-    5794061503: {
-        "name": "xJetSwap",
-        "username": "xJetSwapBot"
-    },
-    1985737506: {
-        "name": "Wallet",
-        "username": "wallet"
-    }
-}
+    def is_valid(self, cheque: str) -> bool:
+        if cheque in self._cheques:
+            self._cheques.append(cheque)
+            return self._is_valid_impl(cheque)
+        return False
+
+    @abstractmethod
+    def _is_valid_impl(self, cheque: str) -> bool:
+        pass
+
+    @property
+    def supports_inline(self) -> bool:
+        raise NotImplementedError
+
+
+class RocketBot(Bot):
+    supports_inline = True
+
+    _rocket_valid: list = [
+        "mc", "mci", "t"
+    ]
+
+    def __init__(self):
+        super().__init__(5014831088, "tonRocketBot", "TonRocket")
+
+    def _is_valid_impl(self, cheque: str) -> bool:
+        if "_" in cheque:
+            split = cheque.split("_")
+            cheque_type = split[0].lower()
+            cheque_hash = split[1]
+            if len(cheque_hash) == 15 and cheque_type in self._rocket_valid:
+                logger.info("rocket cheque is valid")
+                return True
+            return False
+
+
+class CryptoBot(Bot):
+    supports_inline = False
+
+    def __init__(self):
+        super().__init__(1559501630, "CryptoBot", "CryptoBot")
+
+    def _is_valid_impl(self, cheque: str) -> bool:
+        if cheque.startswith("CQ") and len(cheque) == 12:
+            logger.info("cryptobot cheque is valid")
+            return True
+
+
+class XJetSwap(Bot):
+    supports_inline = True
+
+    def __init__(self):
+        super().__init__(5794061503, "xJetSwapBot", "xJetSwap")
+
+    def _is_valid_impl(self, cheque: str) -> bool:
+        if cheque.startswith("c_") and len(cheque) == 26:
+            logger.info("xjetswap cheque is valid")
+            return True
+
+
+class Wallet(Bot):
+    supports_inline = True
+
+    def __init__(self):
+        super().__init__(1985737506, "wallet", "Wallet")
+
+    def _is_valid_impl(self, cheque: str) -> bool:
+        if cheque.startswith("C-") and len(cheque) == 12:
+            logger.info("wallet cheque is valid")
+            return True
+
+
+class BotRegistry:
+    bots: list[Bot] = [
+        RocketBot(),
+        CryptoBot(),
+        XJetSwap(),
+        Wallet()
+    ]
+
+    def get_by_id(self, id: Number | None) -> Bot | None:
+        if id is not None:
+            for bot in self.bots:
+                if bot.id == id:
+                    return bot
+        return None
+
+    def get_by_username(self, username: str | None) -> Bot | None:
+        if username is not None:
+            for bot in self.bots:
+                if bot.username == username:
+                    return bot
+        return None
+
+
+registry = BotRegistry()
 
 
 def parse_url(s: str):
@@ -52,37 +129,6 @@ def parse_url(s: str):
     elif not re.match("[a-zA-Z]+://.*", s):
         return urlparse("//" + s)
     return urlparse(s)
-
-
-def filter_cheques(bot: str, cheque: str) -> bool:
-    if bot == "tonrocketbot" and "_" in cheque:
-        logger.info("TonRocket")
-        split = cheque.split("_")
-        cheque_type = split[0].lower()
-        cheque_hash = split[1]
-        if len(cheque_hash) == 15 and cheque_type in rocket_valid and cheque not in cheques:
-            logger.info("rocket cheque is valid")
-            cheques.append(cheque)
-            return True
-    elif bot == "cryptobot":
-        logger.info("CryptoBot")
-        if cheque.startswith("CQ") and len(cheque) == 12 and cheque not in cheques:
-            logger.info("cryptobot cheque is valid")
-            cheques.append(cheque)
-            return True
-    elif bot == "xjetswapbot":
-        logger.info("xJetSwap")
-        if cheque.startswith("c_") and len(cheque) == 26 and cheque not in cheques:
-            logger.info("xjetswap cheque is valid")
-            cheques.append(cheque)
-            return True
-    elif bot == "wallet":
-        if cheque.startswith("C-") and len(cheque) == 12 and cheque not in cheques:
-            logger.info("wallet cheque is valid")
-            cheques.append(cheque)
-            return True
-
-    return False
 
 
 @loader.tds
@@ -110,12 +156,10 @@ class ChequesModule(loader.Module):
 
     @loader.tag("only_messages", "in")
     async def watcher(self, message: Message):
-        bot_id = message.via_bot_id
-
         group_id = list(message.peer_id.to_dict().values())[1]
         message_id = message.id
 
-        bot = bots[bot_id] if bot_id in bots else None
+        bot = registry.get_by_id(message.via_bot_id)
 
         if bot is not None:
             logger.info("bot is not none")
@@ -133,18 +177,15 @@ class ChequesModule(loader.Module):
                     logger.info("first start is valid")
                     cheque: str = query["start"]
 
-                    bot_name = bot["name"]
-                    bot_username = bot["username"]
-
                     original_message = message.message
                     button = message.reply_markup.rows[0].buttons[0]
 
-                    in_inline_title = ""
+                    in_inline_title = "\nБот не поддерживает inline"
                     in_inline_description = ""
 
-                    if bot_url in require_inline:
+                    if bot.supports_inline:
                         logger.info("inline")
-                        results: InlineResults = await self.client.inline_query(bot_username, cheque)
+                        results: InlineResults = await self.client.inline_query(bot.username, cheque)
 
                         if len(results) == 1:
                             inline: InlineResult = results[0]
@@ -163,15 +204,17 @@ class ChequesModule(loader.Module):
                             if "start" in query:
                                 logger.info("second start is valid")
                                 cheque: str = query["start"]
+                        else:
+                            return
 
-                    if filter_cheques(bot_url, cheque):
+                    if bot.is_valid(cheque):
                         logger.info("verified")
 
                         transfer_found = self.strings["transfer_found"]
                         source = self.strings["source"]
 
                         await self.inline.form(
-                            text=f"<b>{bot_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
+                            text=f"<b>{bot.display_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
                             message=1744074313,
                             reply_markup=[
                                 [
@@ -215,10 +258,11 @@ class ChequesModule(loader.Module):
 
                     if address == "t.me":
                         logger.info("address valid")
-                        bot_url = url.path.removeprefix("/")
                         query = dict(parse_qsl(url.query))
 
-                        if bot_url.lower() in valid_bots:
+                        bot = registry.get_by_username(url.path.removeprefix("/"))
+
+                        if bot is not None:
                             if "start" in query:
                                 logger.info("first start is valid")
                                 cheque: str = query["start"]
@@ -226,17 +270,13 @@ class ChequesModule(loader.Module):
                                 button_text = self.strings["activate"]
                                 button_url = raw_url
 
-                                original_message = ""
-                                title = ""
-                                description = ""
+                                original_message = "\nСообщение скрыто"
+                                in_inline_title = "\nБот не поддерживает inline"
+                                in_inline_description = ""
 
-                                logger.info(url.query)
-                                logger.info(cheque)
-                                logger.info(bot_url)
-
-                                if bot_url.lower() in require_inline:
+                                if bot.supports_inline:
                                     logger.info("inline")
-                                    results: InlineResults = await self.client.inline_query(bot_url, cheque)
+                                    results: InlineResults = await self.client.inline_query(bot.username, cheque)
 
                                     if len(results) == 1:
                                         inline: InlineResult = results[0]
@@ -249,8 +289,8 @@ class ChequesModule(loader.Module):
                                         button_text = button.text
                                         button_url = button.url
 
-                                        title = f"\n{inline.title}"
-                                        description = f"\n{inline.description}"
+                                        in_inline_title = f"\n{inline.title}"
+                                        in_inline_description = f"\n{inline.description}"
 
                                         url = parse_url(button.url)
                                         query = dict(parse_qsl(url.query))
@@ -258,20 +298,18 @@ class ChequesModule(loader.Module):
                                         if "start" in query:
                                             logger.info("second start is valid")
                                             cheque: str = query["start"]
+                                    else:
+                                        continue
 
-                                logger.info(url.query)
-                                logger.info(cheque)
-                                logger.info(bot_url)
-
-                                if filter_cheques(bot_url.lower(), cheque):
+                                if bot.is_valid(cheque):
                                     logger.info("verified")
 
                                     transfer_found = self.strings["transfer_found"]
                                     source = self.strings["source"]
 
                                     await self.inline.form(
-                                        text=f"<b>{bot_url}</b> {transfer_found}{title}{description}{original_message}",
-                                        message=1744074313,
+                                        text=f"<b>{bot.display_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
+                                        message=container_id,
                                         reply_markup=[
                                             [
                                                 {
