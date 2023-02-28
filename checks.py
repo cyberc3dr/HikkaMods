@@ -159,9 +159,7 @@ class ChequesModule(loader.Module):
     @loader.tag("only_messages", "in")
     async def watcher(self, message: Message):
         entity = await self.client.get_entity(message.peer_id)
-        group_id = f"c/{entity.id}"
-        if not isinstance(entity, User | UserEmpty):
-            group_id = entity.title if entity.title is not None else f"c/{entity.id}"
+        group_id = entity.title if entity.title is not None else f"c/{entity.id}"
 
         message_id = message.id
 
