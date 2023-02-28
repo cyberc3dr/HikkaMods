@@ -1,17 +1,14 @@
 import logging
+import re
 from abc import ABC, abstractmethod
 from numbers import Number
+from urllib.parse import urlparse, parse_qsl
 
-from telethon import utils as tlutils
 from telethon.tl.custom import InlineResult
-from telethon.tl.types import Message, BotInlineMessageText, MessageEntityTextUrl, KeyboardButtonUrl, Chat, User, \
-    Channel, UserEmpty
 from telethon.tl.custom.inlineresults import InlineResults
+from telethon.tl.types import Message, BotInlineMessageText, MessageEntityTextUrl, KeyboardButtonUrl
 
 from .. import loader
-
-from urllib.parse import urlparse, parse_qsl
-import re
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +156,7 @@ class ChequesModule(loader.Module):
     @loader.tag("only_messages", "in")
     async def watcher(self, message: Message):
         entity = await self.client.get_entity(message.peer_id)
-        group_id = entity.title if entity.title is not None else f"c/{entity.id}"
+        group_id = entity.username if entity.username is not None else f"c/{entity.id}"
 
         message_id = message.id
 
