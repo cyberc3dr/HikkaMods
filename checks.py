@@ -25,7 +25,7 @@ class Bot(ABC):
         self.display_name = display_name
 
     def is_valid(self, cheque: str) -> bool:
-        if cheque in self._cheques:
+        if cheque not in self._cheques:
             self._cheques.append(cheque)
             return self._is_valid_impl(cheque)
         return False
@@ -104,14 +104,14 @@ class BotRegistry:
         Wallet()
     ]
 
-    def get_by_id(self, id: Number) -> Bot | None:
+    def get_by_id(self, id: Number):
         if id is not None:
             for bot in self.bots:
                 if bot.id == id:
                     return bot
         return None
 
-    def get_by_username(self, username: str) -> Bot | None:
+    def get_by_username(self, username: str):
         if username is not None:
             for bot in self.bots:
                 if bot.username == username:
@@ -270,7 +270,7 @@ class ChequesModule(loader.Module):
                                 button_text = self.strings["activate"]
                                 button_url = raw_url
 
-                                original_message = "\nСообщение скрыто"
+                                original_message = "Сообщение скрыто"
                                 in_inline_title = "\nБот не поддерживает inline"
                                 in_inline_description = ""
 
