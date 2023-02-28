@@ -4,7 +4,8 @@ from numbers import Number
 
 from telethon import utils as tlutils
 from telethon.tl.custom import InlineResult
-from telethon.tl.types import Message, BotInlineMessageText, MessageEntityTextUrl, KeyboardButtonUrl, Chat, User
+from telethon.tl.types import Message, BotInlineMessageText, MessageEntityTextUrl, KeyboardButtonUrl, Chat, User, \
+    Channel, UserEmpty
 from telethon.tl.custom.inlineresults import InlineResults
 
 from .. import loader
@@ -159,7 +160,7 @@ class ChequesModule(loader.Module):
     async def watcher(self, message: Message):
         entity = await self.client.get_entity(message.peer_id)
         group_id = f"c/{entity.id}"
-        if isinstance(entity, Chat):
+        if not isinstance(entity, User | UserEmpty):
             group_id = entity.title if entity.title is not None else f"c/{entity.id}"
 
         message_id = message.id
