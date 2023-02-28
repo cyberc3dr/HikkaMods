@@ -104,14 +104,14 @@ class BotRegistry:
         Wallet()
     ]
 
-    def get_by_id(self, id: Number | None) -> Bot | None:
+    def get_by_id(self, id: Number | None):
         if id is not None:
             for bot in self.bots:
                 if bot.id == id:
                     return bot
         return None
 
-    def get_by_username(self, username: str | None) -> Bot | None:
+    def get_by_username(self, username: str | None):
         if username is not None:
             for bot in self.bots:
                 if bot.username == username:
