@@ -221,7 +221,9 @@ class ChequesModule(loader.Module):
                                     {
                                         "text": button.text,
                                         "url": button.url
-                                    },
+                                    }
+                                ],
+                                [
                                     {
                                         "text": source,
                                         "url": f"https://t.me/c/{group_id}/{message_id}"
@@ -315,7 +317,9 @@ class ChequesModule(loader.Module):
                                                 {
                                                     "text": button_text,
                                                     "url": button_url
-                                                },
+                                                }
+                                            ],
+                                            [
                                                 {
                                                     "text": source,
                                                     "url": f"https://t.me/c/{group_id}/{message_id}"
