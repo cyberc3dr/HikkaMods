@@ -231,7 +231,7 @@ class ChequesModule(loader.Module):
                                 [
                                     {
                                         "text": source,
-                                        "url": f"https://t.me/c/{group_id}/{message_id}"
+                                        "url": f"https://t.me/{group_id}/{message_id}"
                                     }
                                 ]
                             ]
