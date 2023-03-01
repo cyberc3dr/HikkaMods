@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 container_id = 1744074313
 
+url_regex = r"([https?:\/\/]?(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,})"
 
 class Bot(ABC):
     _cheques = []
@@ -23,14 +24,14 @@ class Bot(ABC):
         self.username = username
         self.display_name = display_name
 
-    def is_valid(self, cheque: str) -> bool:
+    def is_valid(self, cheque: str, raw_message) -> bool:
         if cheque not in self._cheques:
             self._cheques.append(cheque)
-            return self._is_valid_impl(cheque)
+            return self._is_valid_impl(cheque, raw_message)
         return False
 
     @abstractmethod
-    def _is_valid_impl(self, cheque: str) -> bool:
+    def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         pass
 
     @property
@@ -48,7 +49,7 @@ class RocketBot(Bot):
     def __init__(self):
         super().__init__(5014831088, "tonRocketBot", "TonRocket")
 
-    def _is_valid_impl(self, cheque: str) -> bool:
+    def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if "_" in cheque:
             split = cheque.split("_")
             cheque_type = split[0].lower()
@@ -65,7 +66,7 @@ class CryptoBot(Bot):
     def __init__(self):
         super().__init__(1559501630, "CryptoBot", "CryptoBot")
 
-    def _is_valid_impl(self, cheque: str) -> bool:
+    def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if cheque.startswith("CQ") and len(cheque) == 12:
             logger.info("cryptobot cheque is valid")
             return True
@@ -77,7 +78,7 @@ class XJetSwap(Bot):
     def __init__(self):
         super().__init__(5794061503, "xJetSwapBot", "xJetSwap")
 
-    def _is_valid_impl(self, cheque: str) -> bool:
+    def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if cheque.startswith("c_") and len(cheque) == 26:
             logger.info("xjetswap cheque is valid")
             return True
@@ -89,7 +90,7 @@ class Wallet(Bot):
     def __init__(self):
         super().__init__(1985737506, "wallet", "Wallet")
 
-    def _is_valid_impl(self, cheque: str) -> bool:
+    def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if cheque.startswith("C-") and len(cheque) == 12:
             logger.info("wallet cheque is valid")
             return True
@@ -97,11 +98,20 @@ class Wallet(Bot):
 
 class JTonBot(Bot):
     supports_inline = False
+    _messages = []
 
     def __init__(self):
         super().__init__(5500608060, "jtonbot", "JTON Wallet")
 
-    def _is_valid_impl(self, cheque: str) -> bool:
+    def _is_valid_impl(self, cheque: str, raw_message) -> bool:
+        if raw_message is not None:
+            message = re.sub(r'\([^()]*\)', '', raw_message)
+            message = re.sub(url_regex, '', message)
+            if message not in self._messages:
+                self._messages.append(message)
+            else:
+                return False
+
         if cheque.startswith("cr_") and len(cheque) == 14:
             logger.info("jton cheque is valid")
             return True
@@ -112,7 +122,8 @@ class BotRegistry:
         RocketBot(),
         CryptoBot(),
         XJetSwap(),
-        Wallet()
+        Wallet(),
+        JTonBot()
     ]
 
     def get_by_id(self, id: Number):
@@ -146,8 +157,6 @@ def parse_url(s: str):
 class ChequesModule(loader.Module):
     """Just for testing purposes"""
 
-    url_regex = r"([https?:\/\/]?(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,})"
-
     strings = {
         "name": "ChequesMod",
         "transfer_found": "transfer found",
@@ -167,6 +176,7 @@ class ChequesModule(loader.Module):
 
     @loader.tag("only_messages", "in")
     async def watcher(self, message: Message):
+        raw_message = message.message
         entity = await self.client.get_entity(message.peer_id)
         group_id = entity.username if entity.username is not None else f"c/{entity.id}"
 
@@ -220,7 +230,7 @@ class ChequesModule(loader.Module):
                         else:
                             return
 
-                    if bot.is_valid(cheque):
+                    if bot.is_valid(cheque, raw_message):
                         logger.info("verified")
 
                         transfer_found = self.strings["transfer_found"]
@@ -316,7 +326,7 @@ class ChequesModule(loader.Module):
                                     else:
                                         continue
 
-                                if bot.is_valid(cheque):
+                                if bot.is_valid(cheque, None):
                                     logger.info("verified")
 
                                     transfer_found = self.strings["transfer_found"]
