@@ -107,6 +107,7 @@ class JTonBot(Bot):
         if raw_message is not None:
             message = re.sub(r'\([^()]*\)', '', raw_message)
             message = re.sub(url_regex, '', message)
+            message = "\n".join([i for i in message.split("\n") if not i.startswith("Активаций: ")])
             if message not in self._messages:
                 self._messages.append(message)
             else:
