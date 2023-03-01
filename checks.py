@@ -165,14 +165,18 @@ class ChequesModule(loader.Module):
         "name": "ChequesMod",
         "transfer_found": "transfer found",
         "source": "Source",
-        "activate": "Activate"
+        "activate": "Activate",
+        "message_hidden": "Message hidden.",
+        "bot_not_inline": "Bot doesn't support inline."
     }
 
     strings_ru = {
         "name": "ChequesMod",
         "transfer_found": "перевод был найден",
         "source": "Источник",
-        "activate": "Активировать"
+        "activate": "Активировать",
+        "message_hidden": "Сообщение скрыто",
+        "bot_not_inline": "Бот не поддерживает inline."
     }
 
     def __init__(self):
@@ -207,7 +211,7 @@ class ChequesModule(loader.Module):
                     original_message = message.message
                     button = message.reply_markup.rows[0].buttons[0]
 
-                    in_inline_title = "\nБот не поддерживает inline"
+                    in_inline_title = "\n" + self.strings["bot_not_inline"]
                     in_inline_description = ""
 
                     if bot.supports_inline:
@@ -299,8 +303,8 @@ class ChequesModule(loader.Module):
                                 button_text = self.strings["activate"]
                                 button_url = raw_url
 
-                                original_message = "Сообщение скрыто"
-                                in_inline_title = "\nБот не поддерживает inline"
+                                original_message = self.strings["message_hidden"]
+                                in_inline_title = "\n" + self.strings["bot_not_inline"]
                                 in_inline_description = ""
 
                                 if bot.supports_inline:
@@ -329,6 +333,8 @@ class ChequesModule(loader.Module):
                                             cheque: str = query["start"]
                                     else:
                                         continue
+
+                                button_url = button_url if button_url.startswith("http") else "https://" + button_url
 
                                 if bot.is_valid(cheque, None):
                                     logger.info("verified")
