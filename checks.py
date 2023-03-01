@@ -112,8 +112,7 @@ class BotRegistry:
         RocketBot(),
         CryptoBot(),
         XJetSwap(),
-        Wallet(),
-        JTonBot()
+        Wallet()
     ]
 
     def get_by_id(self, id: Number):
