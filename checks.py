@@ -95,12 +95,25 @@ class Wallet(Bot):
             return True
 
 
+class JTonBot(Bot):
+    supports_inline = False
+
+    def __init__(self):
+        super().__init__(5500608060, "jtonbot", "JTON Wallet")
+
+    def _is_valid_impl(self, cheque: str) -> bool:
+        if cheque.startswith("cr_") and len(cheque) == 14:
+            logger.info("jton cheque is valid")
+            return True
+
+
 class BotRegistry:
     bots: list[Bot] = [
         RocketBot(),
         CryptoBot(),
         XJetSwap(),
-        Wallet()
+        Wallet(),
+        JTonBot()
     ]
 
     def get_by_id(self, id: Number):
