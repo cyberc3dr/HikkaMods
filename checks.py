@@ -22,10 +22,11 @@ url_regex = r"([https?:\/\/]?(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,
 class Bot(ABC):
     _cheques = []
 
-    def __init__(self, id: Number, username: str, display_name: str):
+    def __init__(self, id: Number, username: str, display_name: str, icon: str):
         self.id = id
         self.username = username
         self.display_name = display_name
+        self.icon = icon
 
     def is_valid(self, cheque: str, raw_message) -> bool:
         if cheque not in self._cheques:
@@ -50,7 +51,7 @@ class RocketBot(Bot):
     ]
 
     def __init__(self):
-        super().__init__(5014831088, "tonRocketBot", "TonRocket")
+        super().__init__(5014831088, "tonRocketBot", "TonRocket", "🚀")
 
     def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if "_" in cheque:
@@ -67,7 +68,7 @@ class CryptoBot(Bot):
     supports_inline = False
 
     def __init__(self):
-        super().__init__(1559501630, "CryptoBot", "CryptoBot")
+        super().__init__(1559501630, "CryptoBot", "CryptoBot", "💎")
 
     def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if cheque.startswith("CQ") and len(cheque) == 12:
@@ -79,7 +80,7 @@ class XJetSwap(Bot):
     supports_inline = True
 
     def __init__(self):
-        super().__init__(5794061503, "xJetSwapBot", "xJetSwap")
+        super().__init__(5794061503, "xJetSwapBot", "xJetSwap", "✈️")
 
     def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if cheque.startswith("c_") and len(cheque) == 26:
@@ -91,7 +92,7 @@ class Wallet(Bot):
     supports_inline = True
 
     def __init__(self):
-        super().__init__(1985737506, "wallet", "Wallet")
+        super().__init__(1985737506, "wallet", "Wallet", "💵")
 
     def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if cheque.startswith("C-") and len(cheque) == 12:
@@ -104,7 +105,7 @@ class JTonBot(Bot):
     _messages = []
 
     def __init__(self):
-        super().__init__(5500608060, "jtonbot", "JTON Wallet")
+        super().__init__(5500608060, "jtonbot", "JTON Wallet", "⚫️")
 
     def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if raw_message is not None:
@@ -211,7 +212,7 @@ class ChequesModule(loader.Module):
                     original_message = message.message
                     button = message.reply_markup.rows[0].buttons[0]
 
-                    in_inline_title = "\n" + self.strings["bot_not_inline"]
+                    in_inline_title = "\n📘 " + self.strings["bot_not_inline"]
                     in_inline_description = ""
 
                     if bot.supports_inline:
@@ -226,7 +227,7 @@ class ChequesModule(loader.Module):
 
                             button = _message.reply_markup.rows[0].buttons[0]
 
-                            in_inline_title = "\n" + inline.title
+                            in_inline_title = "\n📕 " + inline.title
                             in_inline_description = "\n" + inline.description
 
                             url = parse_url(button.url)
@@ -242,15 +243,15 @@ class ChequesModule(loader.Module):
                         logger.info("verified")
 
                         transfer_found = self.strings["transfer_found"]
-                        source = self.strings["source"]
+                        source = "🔎 " + self.strings["source"]
 
                         await self.inline.form(
-                            text=f"<b>{bot.display_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
+                            text=f"{bot.icon} <b>{bot.display_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
                             message=1744074313,
                             reply_markup=[
                                 [
                                     {
-                                        "text": button.text,
+                                        "text": bot.icon + " " + button.text.removeprefix("🌟 "),
                                         "url": button.url
                                     }
                                 ],
@@ -303,8 +304,8 @@ class ChequesModule(loader.Module):
                                 button_text = self.strings["activate"]
                                 button_url = raw_url
 
-                                original_message = self.strings["message_hidden"]
-                                in_inline_title = "\n" + self.strings["bot_not_inline"]
+                                original_message = "🚫 " + self.strings["message_hidden"]
+                                in_inline_title = "\n📘 " + self.strings["bot_not_inline"]
                                 in_inline_description = ""
 
                                 if bot.supports_inline:
@@ -315,7 +316,7 @@ class ChequesModule(loader.Module):
                                         inline: InlineResult = results[0]
 
                                         from_inline_message: BotInlineMessageText = inline.message
-                                        original_message = f"\n\n{from_inline_message.message}"
+                                        original_message = from_inline_message.message
 
                                         button = from_inline_message.reply_markup.rows[0].buttons[0]
 
@@ -340,15 +341,15 @@ class ChequesModule(loader.Module):
                                     logger.info("verified")
 
                                     transfer_found = self.strings["transfer_found"]
-                                    source = self.strings["source"]
+                                    source = "🔎 " + self.strings["source"]
 
                                     await self.inline.form(
-                                        text=f"<b>{bot.display_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
+                                        text=f"{bot.icon} <b>{bot.display_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
                                         message=container_id,
                                         reply_markup=[
                                             [
                                                 {
-                                                    "text": button_text,
+                                                    "text": bot.icon + " " + button_text.removeprefix("🌟 "),
                                                     "url": button_url
                                                 }
                                             ],
