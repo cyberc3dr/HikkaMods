@@ -323,7 +323,7 @@ class ChequesModule(loader.Module):
                                         button_text = button.text
                                         button_url = button.url
 
-                                        in_inline_title = f"\n{inline.title}"
+                                        in_inline_title = f"\n📕 {inline.title}"
                                         in_inline_description = f"\n{inline.description}"
 
                                         url = parse_url(button.url)
