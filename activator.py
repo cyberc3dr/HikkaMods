@@ -2,14 +2,16 @@ import logging
 import re
 from urllib.parse import urlparse, parse_qsl
 
-from telethon import types
-from telethon.tl.types import MessageEntityTextUrl, KeyboardButtonUrl
+from telethon.tl.types import MessageEntityTextUrl, KeyboardButtonUrl, Message
 from tgchequeman import exceptions, activate_multicheque, parse_url
 
-from .. import loader, utils
-from ..tl_cache import CustomTelegramClient
+from .. import loader
 
 logger = logging.getLogger(__name__)
+
+url_regex = r"([https?:\/\/]?(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+[" \
+            r"^\s]{1,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[" \
+            r"a-zA-Z0-9]+[^\s]{1,})"
 
 
 def parse_raw_url(s: str):
@@ -28,17 +30,6 @@ class TonRocketCatcherMod(loader.Module):
     strings = {"name": "TonRocket-Catcher"}
     strings_ru = {"_cls_doc": "TonRocket-Catcher"}
     tonrocketbot_id = 5014831088
-    patterns = {
-        "receive": r"Receive|Получить",
-        "url": r"https://t\.me/tonRocketBot\?start=[^\s]+",
-    }
-
-    async def client_ready(self, client, db) -> None:
-        self.client: CustomTelegramClient = client
-
-    async def trcinfocmd(self, message: types.Message):
-        """ Проверка работоспособности модуля """
-        await utils.answer(message, "Все работает!")
 
     async def activate(self, url: dict):
         try:
@@ -59,7 +50,7 @@ class TonRocketCatcherMod(loader.Module):
             logger.error(err)
 
     @loader.tag("only_messages")
-    async def watcher(self, message: types.Message) -> None:
+    async def watcher(self, message: Message):
         raw_message = message.message
         entity = await self.client.get_entity(message.peer_id)
         group_id = entity.username if hasattr(entity, "username") and entity.username is not None else f"c/{entity.id}"
@@ -98,9 +89,9 @@ class TonRocketCatcherMod(loader.Module):
                         logger.info("address valid")
                         query = dict(parse_qsl(url.query))
 
-                        bot = url.path.removeprefix("/")
+                        bot = url.path.removeprefix("/").lower()
 
-                        if bot == "tonRocketBot":
+                        if bot == "tonrocketbot":
                             if "start" in query:
                                 cheque_url = parse_url(raw_url)
                                 await self.activate(cheque_url)
