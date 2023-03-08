@@ -63,6 +63,8 @@ class TonRocketCatcherMod(loader.Module):
 
     @loader.tag("only_messages", "in", chat_id=container_id)
     async def watcher(self, message: types.Message) -> None:
+        logger.info("a wild message just appeared")
+        
         raw_message = message.message
         urls = re.findall(self.url_regex, raw_message)
         entities = message.entities
@@ -83,6 +85,8 @@ class TonRocketCatcherMod(loader.Module):
                             urls.append(_url)
 
         urls = [*set(urls)]
+
+        urls = [i if i.startswith("http") else f"https://{i}" for i in urls]
 
         for raw_url in urls:
             url = parse_raw_url(raw_url)
