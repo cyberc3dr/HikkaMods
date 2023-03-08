@@ -29,7 +29,6 @@ class TonRocketCatcherMod(loader.Module):
 
     strings = {"name": "TonRocket-Catcher"}
     strings_ru = {"_cls_doc": "TonRocket-Catcher"}
-    tonrocketbot_id = 5014831088
 
     async def activate(self, url: dict):
         try:
@@ -51,6 +50,7 @@ class TonRocketCatcherMod(loader.Module):
 
     @loader.tag("only_messages")
     async def watcher(self, message: Message):
+        logger.info("event works")
         raw_message = message.message
         entity = await self.client.get_entity(message.peer_id)
         group_id = entity.username if hasattr(entity, "username") and entity.username is not None else f"c/{entity.id}"
