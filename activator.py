@@ -61,10 +61,10 @@ class TonRocketCatcherMod(loader.Module):
         except Exception as err:
             logger.error(err)
 
-    @loader.tag("only_messages", "in", chat_id=container_id)
+    @loader.tag("only_messages", chat_id=container_id)
     async def watcher(self, message: types.Message) -> None:
         logger.info("a wild message just appeared")
-        
+
         raw_message = message.message
         urls = re.findall(self.url_regex, raw_message)
         entities = message.entities
