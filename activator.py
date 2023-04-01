@@ -2,7 +2,8 @@ import logging
 import re
 from urllib.parse import urlparse, parse_qsl
 
-from telethon.tl.types import MessageEntityTextUrl, KeyboardButtonUrl, Message
+from telethon.tl.functions.messages import GetMessagesRequest
+from telethon.tl.types import MessageEntityTextUrl, KeyboardButtonUrl, Message, InputMessageReplyTo
 from tgchequeman import exceptions, activate_multicheque, parse_url
 
 from .. import loader
@@ -30,9 +31,9 @@ class TonRocketCatcherMod(loader.Module):
     strings = {"name": "TonRocket-Catcher"}
     strings_ru = {"_cls_doc": "TonRocket-Catcher"}
 
-    async def activate(self, url: dict):
+    async def activate(self, url: dict, password: str):
         try:
-            await activate_multicheque(self.client, url, '')
+            await activate_multicheque(self.client, url, password)
         except (exceptions.ChequeFullyActivatedOrNotFound, exceptions.PasswordError) as err:
             logger.error(err)
         except (exceptions.ChequeActivated,
@@ -49,13 +50,28 @@ class TonRocketCatcherMod(loader.Module):
             logger.error(err)
 
     @loader.tag("only_messages")
-    async def watcher(self, message: Message):
+    async def watcher(self, src_message: Message):
+        message = src_message
+        password = ''
+
         raw_message = message.message
         entity = await self.client.get_entity(message.peer_id)
         group_id = entity.username if hasattr(entity, "username") and entity.username is not None else f"c/{entity.id}"
 
         if group_id == "slivacheques" or group_id == "c/1744074313":
+            group_id = "slivacheques"
+
             logger.info("a wild cheque has appeared")
+
+            reply_msg_id = message.reply_to.reply_to_msg_id
+
+            if reply_msg_id is not None:
+                password = raw_message
+
+                message = await self.client.get_messages(group_id, ids=reply_msg_id)
+                raw_message = message.message
+
+                logger.info(raw_message)
 
             urls = re.findall(url_regex, raw_message)
             entities = message.entities
@@ -93,6 +109,6 @@ class TonRocketCatcherMod(loader.Module):
                         if bot == "tonrocketbot":
                             if "start" in query:
                                 cheque_url = parse_url(raw_url)
-                                await self.activate(cheque_url)
+                                await self.activate(cheque_url, password)
                 except:
                     continue
