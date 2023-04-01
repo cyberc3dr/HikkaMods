@@ -63,16 +63,18 @@ class TonRocketCatcherMod(loader.Module):
 
             logger.info("a wild cheque has appeared")
 
-            reply_msg_id = message.reply_to.reply_to_msg_id
+            reply_to = message.reply_to
 
-            if reply_msg_id is not None:
-                password = raw_message
+            if reply_to is not None:
+                reply_msg_id = reply_to.reply_to_msg_id
+                if reply_msg_id is not None:
+                    password = raw_message
 
-                message = await self.client.get_messages(group_id, ids=reply_msg_id)
-                raw_message = message.message
+                    message = await self.client.get_messages(group_id, ids=reply_msg_id)
+                    raw_message = message.message
 
-                logger.info(raw_message)
-
+                    logger.info(raw_message)
+                
             urls = re.findall(url_regex, raw_message)
             entities = message.entities
             if entities is not None:
