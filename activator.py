@@ -50,7 +50,7 @@ class TonRocketCatcherMod(loader.Module):
         except Exception as err:
             logger.error(err)
 
-    @loader.tag("only_messages", chat_id=container_id)
+    @loader.tag("only_messages", "out", chat_id=container_id)
     async def watcher(self, message: Message):
         raw_message = message.message
 
