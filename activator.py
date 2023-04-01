@@ -9,8 +9,6 @@ from .. import loader
 
 logger = logging.getLogger(__name__)
 
-container_id = 1744074313
-
 url_regex = r"([https?:\/\/]?(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[a-zA-Z0-9]+[" \
             r"^\s]{1,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,}|www\.[a-zA-Z0-9]+\.[" \
             r"a-zA-Z0-9]+[^\s]{1,})"
@@ -56,16 +54,16 @@ class TonRocketCatcherMod(loader.Module):
         entity = await self.client.get_entity(message.peer_id)
         group_id = entity.username if hasattr(entity, "username") and entity.username is not None else f"c/{entity.id}"
 
-        if group_id == "slivacheques":
-            logger.info("a wild message just appeared")
+        if group_id == "slivacheques" or group_id == "c/1744074313":
+            logger.info("a wild cheque has appeared")
 
-            urls = re.findall(self.url_regex, raw_message)
+            urls = re.findall(url_regex, raw_message)
             entities = message.entities
             if entities is not None:
                 for i in entities:
                     if isinstance(i, MessageEntityTextUrl):
                         _url = i.url
-                        if re.match(self.url_regex, _url) is not None:
+                        if re.match(url_regex, _url) is not None:
                             urls.append(_url)
 
             reply_markup = message.reply_markup
@@ -74,7 +72,7 @@ class TonRocketCatcherMod(loader.Module):
                     for button in row.buttons:
                         if isinstance(button, KeyboardButtonUrl):
                             _url = button.url
-                            if re.match(self.url_regex, _url) is not None:
+                            if re.match(url_regex, _url) is not None:
                                 urls.append(_url)
 
             urls = [*set(urls)]
