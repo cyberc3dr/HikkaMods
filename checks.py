@@ -247,7 +247,7 @@ class ChequesModule(loader.Module):
 
                         await self.inline.form(
                             text=f"{bot.icon} <b>{bot.display_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
-                            message=1744074313,
+                            message=container_id,
                             reply_markup=[
                                 [
                                     {
