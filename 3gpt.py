@@ -48,7 +48,7 @@ class GPT4Free(loader.Module):
         await utils.answer(message, "<b>Контекст usesless был сброшен</b>")
 
     @loader.command()
-    async def newul(self, message: Message):
+    async def newbai(self, message: Message):
         theb.Completion.last_msg_id = None
         await utils.answer(message, "<b>Контекст bai был сброшен</b>")
 
