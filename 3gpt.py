@@ -54,17 +54,24 @@ class GPT4Free(loader.Module):
             await utils.answer(message, f"<b>Ваш вопрос к usesless</b>: {prompt}\n<b>Ответ нейросети</b>: "
                                         f"<code>Ждём...</code>")
 
-            try:
-                answer = usesless.Completion.create(prompt=prompt,
-                                                    parentMessageId=self.message_id)
+            n = 0
 
-                text = answer["text"]
-                self.message_id = answer["id"]
-
-                await utils.answer(message, f"<b>Ваш вопрос к usesless</b>: {prompt}\n<b>Ответ нейросети</b>: {text}")
-            except IndexError:
+            while n < 30:
+                n += 1
                 await utils.answer(message, f"<b>Ваш вопрос к usesless</b>: {prompt}\n<b>Ответ нейросети</b>: "
-                                            f"<code>🚫 Ошибка</code>")
+                                            f"<code>Ждём...{n}</code>")
+                try:
+                    answer = usesless.Completion.create(prompt=prompt,
+                                                        parentMessageId=self.message_id)
+
+                    text = answer["text"]
+                    self.message_id = answer["id"]
+
+                    await utils.answer(message,
+                                       f"<b>Ваш вопрос к usesless</b>: {prompt}\n<b>Ответ нейросети</b>: {text}")
+                    break
+                except IndexError:
+                    continue
 
     # @loader.command()
     # async def createchat(self, message: Message):
