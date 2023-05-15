@@ -100,35 +100,12 @@ class Wallet(Bot):
             return True
 
 
-class JTonBot(Bot):
-    supports_inline = False
-    _messages = []
-
-    def __init__(self):
-        super().__init__(5500608060, "jtonbot", "JTON Wallet", "⚫️")
-
-    def _is_valid_impl(self, cheque: str, raw_message) -> bool:
-        if raw_message is not None:
-            message = re.sub(r'\([^()]*\)', '', raw_message)
-            message = re.sub(url_regex, '', message)
-            message = "\n".join([i for i in message.split("\n") if not i.startswith("Активаций: ")])
-            if message not in self._messages:
-                self._messages.append(message)
-            else:
-                return False
-
-        if cheque.startswith("cr_") and len(cheque) == 14:
-            logger.info("jton cheque is valid")
-            return True
-
-
 class BotRegistry:
     bots: list[Bot] = [
         RocketBot(),
         CryptoBot(),
         XJetSwap(),
-        Wallet(),
-        JTonBot()
+        Wallet()
     ]
 
     def get_by_id(self, id: Number):
