@@ -8,7 +8,7 @@ from telethon.tl.custom import InlineResult
 from telethon.tl.custom.inlineresults import InlineResults
 from telethon.tl.types import Message, BotInlineMessageText, MessageEntityTextUrl, KeyboardButtonUrl
 
-from .. import loader
+from .. import loader, utils
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,8 @@ url_regex = r"([https?:\/\/]?(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,
 
 
 class Bot(ABC):
-    _cheques = []
+    cheques = []
+    garbageCount = 0
 
     def __init__(self, id: Number, username: str, display_name: str, icon: str):
         self.id = id
@@ -29,9 +30,12 @@ class Bot(ABC):
         self.icon = icon
 
     def is_valid(self, cheque: str, raw_message) -> bool:
-        if cheque not in self._cheques:
-            self._cheques.append(cheque)
-            return self._is_valid_impl(cheque, raw_message)
+        if cheque not in self.cheques:
+            _valid = self._is_valid_impl(cheque, raw_message)
+            if _valid:
+                self.cheques.append(cheque)
+            else:
+                self.garbageCount += 1
         return False
 
     @abstractmethod
@@ -181,7 +185,9 @@ class ChequesModule(loader.Module):
         "source": "Source",
         "activate": "Activate",
         "message_hidden": "Message hidden.",
-        "bot_not_inline": "Bot doesn't support inline."
+        "bot_not_inline": "Bot doesn't support inline.",
+        "total": "Total cheques",
+        "garbage": "Garbage cheques"
     }
 
     strings_ru = {
@@ -190,11 +196,23 @@ class ChequesModule(loader.Module):
         "source": "Источник",
         "activate": "Активировать",
         "message_hidden": "Сообщение скрыто",
-        "bot_not_inline": "Бот не поддерживает inline."
+        "bot_not_inline": "Бот не поддерживает inline.",
+        "total": "Всего чеков",
+        "garbage": "Мусорных чеков"
     }
 
     def __init__(self):
         logger.info("hello from testmod")
+
+    @loader.command(ru_doc="Проверить состояние контейнера", en_doc="Check container")
+    async def cqstats(self, message: Message):
+        _result = "<b>Статистика: </b>\n\n"
+        for bot in registry.bots:
+            _result += f"{bot.icon} <b>{bot.display_name}:</b>\n"
+            _result += f"<b>{self.strings['total']}:</b> <code>{len(bot.cheques)}</code>\n"
+            _result += f"<b>{self.strings['garbage']}:</b> <code>{bot.garbageCount}</code>\n\n"
+
+        await utils.answer(message, _result)
 
     @loader.tag("only_messages", "in")
     async def watcher(self, message: Message):
@@ -207,29 +225,28 @@ class ChequesModule(loader.Module):
         bot = registry.get_by_id(message.via_bot_id)
 
         if bot is not None:
-            logger.info("bot is not none")
+            # logger.info("bot is not none")
 
             url = parse_url(message.reply_markup.rows[0].buttons[0].url)
 
             address = url.netloc.lower()
 
             if address == "t.me":
-                logger.info("address valid")
-                bot_url = url.path.removeprefix("/").lower()
+                # logger.info("address valid")
                 query = dict(parse_qsl(url.query))
 
                 if "start" in query:
-                    logger.info("first start is valid")
+                    # logger.info("first start is valid")
                     cheque: str = query["start"]
 
                     original_message = message.message
                     button = message.reply_markup.rows[0].buttons[0]
 
-                    in_inline_title = "\n📘 " + self.strings["bot_not_inline"]
+                    in_inline_title = f"\n📘 {self.strings['bot_not_inline']}"
                     in_inline_description = ""
 
                     if bot.supports_inline:
-                        logger.info("inline")
+                        # logger.info("inline")
                         results: InlineResults = await self.client.inline_query(bot.username, cheque)
 
                         if len(results) == 1:
@@ -240,26 +257,23 @@ class ChequesModule(loader.Module):
 
                             button = _message.reply_markup.rows[0].buttons[0]
 
-                            in_inline_title = "\n📕 " + inline.title
-                            in_inline_description = "\n" + inline.description
+                            in_inline_title = f"\n📕 {inline.title}"
+                            in_inline_description = f"\n {inline.description}"
 
                             url = parse_url(button.url)
                             query = dict(parse_qsl(url.query))
 
                             if "start" in query:
-                                logger.info("second start is valid")
+                                # logger.info("second start is valid")
                                 cheque: str = query["start"]
                         else:
                             return
 
                     if bot.is_valid(cheque, raw_message):
-                        logger.info("verified")
-
-                        transfer_found = self.strings["transfer_found"]
-                        source = "🔎 " + self.strings["source"]
+                        # logger.info("verified")
 
                         await self.inline.form(
-                            text=f"{bot.icon} <b>{bot.display_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
+                            text=f"{bot.icon} <b>{bot.display_name}</b> {self.strings['transfer_found']}{in_inline_title}{in_inline_description}\n\n{original_message}",
                             message=container_id,
                             reply_markup=[
                                 [
@@ -270,7 +284,7 @@ class ChequesModule(loader.Module):
                                 ],
                                 [
                                     {
-                                        "text": source,
+                                        "text": self.strings['source'],
                                         "url": f"https://t.me/{group_id}/{message_id}"
                                     }
                                 ]
@@ -304,25 +318,25 @@ class ChequesModule(loader.Module):
                     address = url.netloc.lower()
 
                     if address == "t.me":
-                        logger.info("address valid")
+                        # logger.info("address valid")
                         query = dict(parse_qsl(url.query))
 
                         bot = registry.get_by_username(url.path.removeprefix("/"))
 
                         if bot is not None:
                             if "start" in query:
-                                logger.info("first start is valid")
+                                # logger.info("first start is valid")
                                 cheque: str = query["start"]
 
                                 button_text = self.strings["activate"]
                                 button_url = raw_url
 
-                                original_message = "🚫 " + self.strings["message_hidden"]
-                                in_inline_title = "\n📘 " + self.strings["bot_not_inline"]
+                                original_message = f"🚫 {self.strings['message_hidden']}"
+                                in_inline_title = f"\n📘 {self.strings['bot_not_inline']}"
                                 in_inline_description = ""
 
                                 if bot.supports_inline:
-                                    logger.info("inline")
+                                    # logger.info("inline")
                                     results: InlineResults = await self.client.inline_query(bot.username, cheque)
 
                                     if len(results) == 1:
@@ -343,7 +357,7 @@ class ChequesModule(loader.Module):
                                         query = dict(parse_qsl(url.query))
 
                                         if "start" in query:
-                                            logger.info("second start is valid")
+                                            # logger.info("second start is valid")
                                             cheque: str = query["start"]
                                     else:
                                         continue
@@ -351,13 +365,10 @@ class ChequesModule(loader.Module):
                                 button_url = button_url if button_url.startswith("http") else "https://" + button_url
 
                                 if bot.is_valid(cheque, None):
-                                    logger.info("verified")
-
-                                    transfer_found = self.strings["transfer_found"]
-                                    source = "🔎 " + self.strings["source"]
+                                    # logger.info("verified")
 
                                     await self.inline.form(
-                                        text=f"{bot.icon} <b>{bot.display_name}</b> {transfer_found}{in_inline_title}{in_inline_description}\n\n{original_message}",
+                                        text=f"{bot.icon} <b>{bot.display_name}</b> {self.strings['transfer_found']}{in_inline_title}{in_inline_description}\n\n{original_message}",
                                         message=container_id,
                                         reply_markup=[
                                             [
@@ -368,7 +379,7 @@ class ChequesModule(loader.Module):
                                             ],
                                             [
                                                 {
-                                                    "text": source,
+                                                    "text": self.strings['source'],
                                                     "url": f"https://t.me/{group_id}/{message_id}"
                                                 }
                                             ]
