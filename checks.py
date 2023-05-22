@@ -20,23 +20,23 @@ url_regex = r"([https?:\/\/]?(?:www\.|(?!www))[a-zA-Z0-9]+\.[a-zA-Z0-9]+[^\s]{1,
 
 
 class Bot(ABC):
-    cheques = []
-    garbageCount = 0
 
     def __init__(self, id: Number, username: str, display_name: str, icon: str):
+        self.cheques = []
+        self.garbage_count = 0
         self.id = id
         self.username = username
         self.display_name = display_name
         self.icon = icon
-
+    
     def is_valid(self, cheque: str, raw_message) -> bool:
         if cheque not in self.cheques:
             _valid = self._is_valid_impl(cheque, raw_message)
             if _valid:
                 self.cheques.append(cheque)
                 return True
-            
-        self.garbageCount += 1
+
+        self.garbage_count += 1
         return False
 
     @abstractmethod
@@ -211,7 +211,7 @@ class ChequesModule(loader.Module):
         for bot in registry.bots:
             _result += f"{bot.icon} <b>{bot.display_name}:</b>\n"
             _result += f"<b>{self.strings['total']}:</b> <code>{len(bot.cheques)}</code>\n"
-            _result += f"<b>{self.strings['garbage']}:</b> <code>{bot.garbageCount}</code>\n\n"
+            _result += f"<b>{self.strings['garbage']}:</b> <code>{bot.garbage_count}</code>\n\n"
 
         await utils.answer(message, _result)
 
