@@ -34,8 +34,9 @@ class Bot(ABC):
             _valid = self._is_valid_impl(cheque, raw_message)
             if _valid:
                 self.cheques.append(cheque)
-            else:
-                self.garbageCount += 1
+                return True
+            
+        self.garbageCount += 1
         return False
 
     @abstractmethod
