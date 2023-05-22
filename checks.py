@@ -92,7 +92,7 @@ class Jetton(Bot):
     supports_inline = True
 
     def __init__(self):
-        super().__init__(5794061503, "jetton", "Jetton", "🎰")
+        super().__init__(5822742440, "jetton", "Jetton", "🎰")
 
     def _is_valid_impl(self, cheque: str, raw_message) -> bool:
         if cheque.startswith("c_") and len(cheque) == 26:
